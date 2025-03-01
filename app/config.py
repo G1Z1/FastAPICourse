@@ -12,5 +12,6 @@ class Settings(BaseSettings):
 
      class Config:
           env_file = ".env"
+          extra = "ignore" # Pydantic enables extra="forbid" by default
 
 settings = Settings()

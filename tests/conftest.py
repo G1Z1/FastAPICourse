@@ -8,7 +8,8 @@ from app.database import get_db
 from app.main import app
 from app.config import settings
 from app.database import Base
-
+from app.oauth2 import create_access_token
+from app import models
 
 SQLALCHEMY_DATABASE_URL = f"postgresql://{settings.DATABASE_USERNAME}:{settings.DATABASE_PASSWORD}@localhost:{settings.DATABASE_PORT}/{settings.DATABASE_NAME}_dev"
 
@@ -49,8 +50,71 @@ def client(session):
 def test_user(client):
     user_data = {"email": "fixture@pytest.com", "password": "password"}
     response = client.post("/users/", json=user_data)
-    print(response.json())
+    # print(response.json())
     assert response.status_code == 201
     new_user = response.json()
     new_user["password"] = user_data["password"]
     return new_user
+
+
+@pytest.fixture # Preventing test_login from being dependent from test_create_user
+def test_user_extra(client):
+    user_data = {"email": "fixture1@pytest.com", "password": "password"}
+    response = client.post("/users/", json=user_data)
+    # print(response.json())
+    assert response.status_code == 201
+    new_user = response.json()
+    new_user["password"] = user_data["password"]
+    return new_user
+
+
+@pytest.fixture
+def token(test_user):
+    return create_access_token({"user_id": test_user["id"]})
+
+
+@pytest.fixture
+def authorized_client(client, token):
+    client.headers = {
+        **client.headers,
+        "Authorization": f"Bearer {token}"
+    }
+    # print(client.headers)
+    # print(token)
+    return client
+
+
+@pytest.fixture
+def test_posts(test_user, test_user_extra, session):
+    posts_data = [
+    {
+        "title": "first title",
+        "content": "first content",
+        "owner_id": test_user["id"]
+    },
+    {
+        "title": "second title",
+        "content": "second content",
+        "owner_id": test_user["id"]
+    },
+    {
+        "title": "third title",
+        "content": "third content",
+        "owner_id": test_user["id"]
+    },
+    {
+        "title": "fourth title",
+        "content": "fourth content",
+        "owner_id": test_user_extra["id"]
+    }]
+
+    # def create_post_model(posts):
+    #     models.Post(**posts)
+    # posts = list(map(create_post_model, posts_data))
+    
+    posts = list(map(lambda p: models.Post(**p), posts_data))
+    
+    session.add_all(posts)
+    session.commit()
+
+    return session.query(models.Post).all()

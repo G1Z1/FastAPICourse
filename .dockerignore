@@ -92,3 +92,7 @@ venv/
 
 # Visual Studio
 .vs/
+
+# Misc
+misc/
+tests/

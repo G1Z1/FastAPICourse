@@ -1,12 +1,13 @@
 name: Build and Deploy code
 
 on:
-    push:
-        branches:
-            - main
+  workflow_dispatch:
+    # push:
+    #     branches:
+    #         - main
 
 jobs:
-    job1:
+    Build:
         environment: Testing
         env :
             DATABASE_HOSTNAME: ${{secrets.DATABASE_HOSTNAME}}
@@ -69,6 +70,14 @@ jobs:
                 tags: ${{secrets.DOCKER_HUB_USERNAME}}/fastapicourse:latest
             - name: Image digest
               run: echo ${{steps.docker_build.outputs.digest}}
+    Release:
+      needs: [Build]
+      runs-on: ubuntu-latest
+      steps:
+        - name: Deploy
+          run: echo "Deploying..."
+
+# Temporary
             # - name: Extract Docker image metadata
             #   id: meta
             #   uses: docker/metadata-action@v5
